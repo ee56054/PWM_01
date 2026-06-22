@@ -28,10 +28,9 @@
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
-
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define TIM2_CLK 72000000.0f // Timer 2 clock frequency in Hz
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -45,7 +44,10 @@ RTC_HandleTypeDef hrtc;
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-
+volatile uint32_t IC_Val1 = 0;
+volatile uint32_t IC_Val2 = 0;
+volatile float Frequency = 0.0f;
+volatile float Duty_Cycle = 0.0f;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -94,6 +96,9 @@ int main(void)
   MX_RTC_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_IC_Start(&htim2, TIM_CHANNEL_2);
+
 
   /* USER CODE END 2 */
 
@@ -282,6 +287,23 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
+  {
+    /* Read the captured values */
+    IC_Val1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+    if (IC_Val1 != 0)
+    {
+      IC_Val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+      /* Calculate Duty Cycle and Frequency */
+      Duty_Cycle = ((float)IC_Val2 / (float)IC_Val1) * 100.0f;
+      Frequency = TIM2_CLK / (float)IC_Val1;
+    }
+  }
+}
+
+
 
 /**
   * @brief  This function is executed in case of error occurrence.
